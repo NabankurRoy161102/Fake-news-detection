@@ -1,0 +1,123 @@
+import pandas as pd
+import numpy as np
+import re
+from nltk.corpus import stopwords
+from nltk.stem.porter import PorterStemmer
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score
+
+
+import nltk
+nltk.download('stopwords')
+
+#loading the data to pandas dataframe
+news_data = pd.read_csv('/content/FakeNewsDetection data.csv')
+
+news_data.shape
+
+#printing the first 5 rows of the dataset
+news_data.head()
+
+#counting the number of missing values
+#the isnull() method to your DataFrame. This method creates a new DataFrame where each cell contains a boolean value: True if the original cell had a missing value (like NaN), and False otherwise.
+#.sum(): This method is then applied to the result of isnull(). It calculates the sum of True values (which represent missing values) along each column.
+news_data.isnull().sum()
+
+
+#replacing the null values with the empty string
+#news_data.fillna(''): This applies the fillna() method to your DataFrame, using an empty string ('') as the replacement value for all missing entries.
+news_data = news_data.fillna('')
+
+
+#merging the author name and news title
+news_data['content'] = news_data['author']+' '+news_data['title']
+print(news_data['content'])
+
+
+#separating the data and the column
+X = news_data.drop(columns='label',axis=1)
+Y = news_data['label']
+print(X)
+print(Y)
+
+
+#stemming
+def stemming(content):
+    stemmed_content = re.sub('[^a-zA-Z]',' ',content)
+    stemmed_content = stemmed_content.lower()
+    stemmed_content = stemmed_content.split()
+    stemmed_content = [PorterStemmer().stem(word) for word in stemmed_content if not word in stopwords.words('english')]
+    stemmed_content = ' '.join(stemmed_content)
+    return stemmed_content
+
+
+news_data['content'] = news_data['content'].apply(stemming)
+print(news_data['content'])
+
+
+#separating the data and the label
+X = news_data['content'].values
+Y = news_data['label'].values
+print(X)
+
+
+# Create a TfidfVectorizer object
+vectorizer = TfidfVectorizer()
+
+# Fit the vectorizer to the 'content' data and transform it
+X = vectorizer.fit_transform(news_data['content'])
+
+
+# Split the data into training and testing sets
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, stratify=Y, random_state=2)
+
+
+# Create a Logistic Regression model
+model = LogisticRegression()
+
+# Train the model
+model.fit(X_train, Y_train)
+
+
+# Predict on the training data
+X_train_pred = model.predict(X_train)
+
+# Calculate the accuracy score
+training_data_accuracy = accuracy_score( X_train_pred, Y_train)
+
+# Print the accuracy score
+print('Accuracy score of the training data : ', training_data_accuracy)
+
+
+# Predict on the test data
+X_test_pred = model.predict(X_test)
+
+# Calculate the accuracy score
+testing_data_accuracy = accuracy_score( X_test_pred, Y_test)
+
+# Print the accuracy score
+print('Accuracy score of the testing data : ', testing_data_accuracy)
+
+
+from sklearn.metrics import precision_score
+# Predict on the test data
+X_test_pred = model.predict(X_test)
+
+# Calculate the accuracy score
+testing_data_accuracy = precision_score( X_test_pred, Y_test)
+
+# Print the accuracy score
+print('precision score of the testing data : ', testing_data_accuracy)
+
+
+from sklearn.metrics import recall_score
+# Predict on the test data
+X_test_pred = model.predict(X_test)
+
+# Calculate the accuracy score
+testing_data_accuracy = recall_score( X_test_pred, Y_test)
+
+# Print the accuracy score
+print('recall score of the testing data : ', testing_data_accuracy)
